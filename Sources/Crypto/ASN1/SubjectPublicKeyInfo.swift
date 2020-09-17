@@ -59,6 +59,7 @@ extension ASN1 {
         case ecdsaP256
         case ecdsaP384
         case ecdsaP521
+        case ecdsaBrainpoolP256r1
 
         init(asn1Encoded rootNode: ASN1.ASN1Node) throws {
             // The AlgorithmIdentifier block looks like this.
@@ -91,6 +92,8 @@ extension ASN1 {
                     return .ecdsaP384
                 case ASN1ObjectIdentifier.NamedCurves.secp521r1:
                     return .ecdsaP521
+                case ASN1ObjectIdentifier.NamedCurves.brainpoolP256r1:
+                    return .ecdsaBrainpoolP256r1
                 default:
                     throw CryptoKitASN1Error.invalidASN1Object
                 }
@@ -108,6 +111,8 @@ extension ASN1 {
                     try coder.serialize(ASN1ObjectIdentifier.NamedCurves.secp384r1)
                 case .ecdsaP521:
                     try coder.serialize(ASN1ObjectIdentifier.NamedCurves.secp521r1)
+                case .ecdsaBrainpoolP256r1:
+                    try coder.serialize(ASN1ObjectIdentifier.NamedCurves.brainpoolP256r1)
                 }
             }
         }

@@ -62,6 +62,8 @@ extension ASN1 {
                     return .ecdsaP384
                 case ASN1ObjectIdentifier.NamedCurves.secp521r1:
                     return .ecdsaP521
+                case ASN1ObjectIdentifier.NamedCurves.brainpoolP256r1:
+                    return .ecdsaBrainpoolP256r1
                 default:
                     throw CryptoKitASN1Error.invalidASN1Object
                 }
@@ -88,6 +90,8 @@ extension ASN1 {
                         oid = ASN1ObjectIdentifier.NamedCurves.secp384r1
                     case .ecdsaP521:
                         oid = ASN1ObjectIdentifier.NamedCurves.secp521r1
+                    case .ecdsaBrainpoolP256r1:
+                        oid = ASN1ObjectIdentifier.NamedCurves.brainpoolP256r1
                     }
 
                     try coder.serialize(oid, explicitlyTaggedWithTagNumber: 0, tagClass: .contextSpecific)

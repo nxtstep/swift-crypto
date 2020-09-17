@@ -27,7 +27,7 @@ import PackageDescription
 let swiftSettings: [SwiftSetting] = [
     .define("CRYPTO_IN_SWIFTPM"),
     // To develop this on Apple platforms, uncomment this define.
-    // .define("CRYPTO_IN_SWIFTPM_FORCE_BUILD_API"),
+    .define("CRYPTO_IN_SWIFTPM_FORCE_BUILD_API"),
 ]
 
 let package = Package(
@@ -44,13 +44,15 @@ let package = Package(
             .library(name: "CCryptoBoringSSL", type: .static, targets: ["CCryptoBoringSSL"]),
             MANGLE_END */
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/SwiftCommon/DataKit", "1.0.1" ..< "2.0.0")
+    ],
     targets: [
         .target(name: "CCryptoBoringSSL"),
         .target(name: "CCryptoBoringSSLShims", dependencies: ["CCryptoBoringSSL"]),
         .target(name: "Crypto", dependencies: ["CCryptoBoringSSL", "CCryptoBoringSSLShims"], swiftSettings: swiftSettings),
         .target(name: "crypto-shasum", dependencies: ["Crypto"]),
-        .testTarget(name: "CryptoTests", dependencies: ["Crypto"], swiftSettings: swiftSettings),
+        .testTarget(name: "CryptoTests", dependencies: ["Crypto", "DataKit"], swiftSettings: swiftSettings),
     ],
     cxxLanguageStandard: .cxx11
 )

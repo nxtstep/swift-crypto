@@ -142,6 +142,8 @@ extension ASN1.ASN1ObjectIdentifier {
         static let secp384r1: ASN1.ASN1ObjectIdentifier = [1, 3, 132, 0, 34]
 
         static let secp521r1: ASN1.ASN1ObjectIdentifier = [1, 3, 132, 0, 35]
+
+        static let brainpoolP256r1: ASN1.ASN1ObjectIdentifier = [1, 3, 36, 3, 3, 2, 8, 1, 1, 7]
     }
 
     enum AlgorithmIdentifier {

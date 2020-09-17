@@ -842,4 +842,274 @@ extension P521.KeyAgreement.PrivateKey: DiffieHellmanKeyAgreement {
         #endif
     }
 }
+
+// MARK: - BrainpoolP256r1 + KeyAgreement
+extension BrainpoolP256r1 {
+    public enum KeyAgreement {
+
+        public struct PublicKey: BrainpoolPublicKey {
+            var impl: NISTCurvePublicKeyImpl<BrainpoolP256r1.CurveDetails>
+
+            public init<D: ContiguousBytes>(rawRepresentation: D) throws {
+                impl = try NISTCurvePublicKeyImpl(rawRepresentation: rawRepresentation)
+            }
+
+            public init<Bytes: ContiguousBytes>(compactRepresentation: Bytes) throws {
+                impl = try NISTCurvePublicKeyImpl(compactRepresentation: compactRepresentation)
+            }
+
+            public init<Bytes: ContiguousBytes>(x963Representation: Bytes) throws {
+                impl = try NISTCurvePublicKeyImpl(x963Representation: x963Representation)
+            }
+
+            public init(pemRepresentation: String) throws {
+                let pem = try ASN1.PEMDocument(pemString: pemRepresentation)
+                guard pem.type == "PUBLIC KEY" else {
+                    throw CryptoKitASN1Error.invalidPEMDocument
+                }
+                self = try .init(derRepresentation: pem.derBytes)
+            }
+
+            public init<Bytes: RandomAccessCollection>(derRepresentation: Bytes) throws where Bytes.Element == UInt8 {
+                let bytes = Array(derRepresentation)
+                let parsed = try ASN1.SubjectPublicKeyInfo(asn1Encoded: bytes)
+                self = try .init(x963Representation: parsed.key)
+            }
+
+            init(impl: NISTCurvePublicKeyImpl<BrainpoolP256r1.CurveDetails>) {
+                self.impl = impl
+            }
+
+            public var compactRepresentation: Data? { impl.compactRepresentation }
+            public var rawRepresentation: Data { impl.rawRepresentation }
+            public var x963Representation: Data { impl.x963Representation }
+
+            public var derRepresentation: Data {
+                let spki = ASN1.SubjectPublicKeyInfo(algorithmIdentifier: .ecdsaP256, key: Array(self.x963Representation))
+                var serializer = ASN1.Serializer()
+
+                // Serializing these keys can't throw
+                try! serializer.serialize(spki)
+                return Data(serializer.serializedBytes)
+            }
+
+            public var pemRepresentation: String {
+                let pemDocument = ASN1.PEMDocument(type: "PUBLIC KEY", derBytes: self.derRepresentation)
+                return pemDocument.pemString
+            }
+        }
+
+        public struct PrivateKey: BrainpoolPrivateKey {
+            let impl: NISTCurvePrivateKeyImpl<BrainpoolP256r1.CurveDetails>
+
+            public init(compactRepresentable: Bool = true) {
+                impl = NISTCurvePrivateKeyImpl(compactRepresentable: compactRepresentable)
+            }
+
+            public init<Bytes: ContiguousBytes>(x963Representation: Bytes) throws {
+                impl = try NISTCurvePrivateKeyImpl(x963: x963Representation)
+            }
+
+            public init<Bytes: ContiguousBytes>(rawRepresentation: Bytes) throws {
+                impl = try NISTCurvePrivateKeyImpl(data: rawRepresentation)
+            }
+
+            public init(pemRepresentation: String) throws {
+                let pem = try ASN1.PEMDocument(pemString: pemRepresentation)
+
+                switch pem.type {
+                case "EC PRIVATE KEY":
+                    let parsed = try ASN1.SEC1PrivateKey(asn1Encoded: Array(pem.derBytes))
+                    self = try .init(rawRepresentation: parsed.privateKey)
+                case "PRIVATE KEY":
+                    let parsed = try ASN1.PKCS8PrivateKey(asn1Encoded: Array(pem.derBytes))
+                    self = try .init(rawRepresentation: parsed.privateKey.privateKey)
+                default:
+                    throw CryptoKitASN1Error.invalidPEMDocument
+                }
+            }
+
+            public init<Bytes: RandomAccessCollection>(derRepresentation: Bytes) throws where Bytes.Element == UInt8 {
+                let bytes = Array(derRepresentation)
+
+                // We have to try to parse this twice because we have no information about what kind of key this is.
+                // We try with PKCS#8 first, and then fall back to SEC.1.
+
+                do {
+                    let key = try ASN1.PKCS8PrivateKey(asn1Encoded: bytes)
+                    self = try .init(rawRepresentation: key.privateKey.privateKey)
+                } catch {
+                    let key = try ASN1.SEC1PrivateKey(asn1Encoded: bytes)
+                    self = try .init(rawRepresentation: key.privateKey)
+                }
+            }
+
+            init(impl: NISTCurvePrivateKeyImpl<BrainpoolP256r1.CurveDetails>) {
+                self.impl = impl
+            }
+
+            public var publicKey: BrainpoolP256r1.KeyAgreement.PublicKey {
+                return PublicKey(impl: impl.publicKey())
+            }
+
+            public var rawRepresentation: Data { impl.rawRepresentation }
+            public var x963Representation: Data { impl.x963Representation }
+
+            public var derRepresentation: Data {
+                let pkey = ASN1.PKCS8PrivateKey(algorithm: .ecdsaBrainpoolP256r1, privateKey: Array(self.rawRepresentation), publicKey: Array(self.publicKey.x963Representation))
+                var serializer = ASN1.Serializer()
+
+                // Serializing these keys can't throw
+                try! serializer.serialize(pkey)
+                return Data(serializer.serializedBytes)
+            }
+
+            public var pemRepresentation: String {
+                let pemDocument = ASN1.PEMDocument(type: "PRIVATE KEY", derBytes: self.derRepresentation)
+                return pemDocument.pemString
+            }
+        }
+    }
+}
+
+extension BrainpoolP256r1 {
+    public enum Signing {
+
+        public struct PublicKey: NISTECPublicKey {
+            var impl: NISTCurvePublicKeyImpl<BrainpoolP256r1.CurveDetails>
+
+            public init<D: ContiguousBytes>(rawRepresentation: D) throws {
+                impl = try NISTCurvePublicKeyImpl(rawRepresentation: rawRepresentation)
+            }
+
+            public init<Bytes: ContiguousBytes>(compactRepresentation: Bytes) throws {
+                impl = try NISTCurvePublicKeyImpl(compactRepresentation: compactRepresentation)
+            }
+
+            public init<Bytes: ContiguousBytes>(x963Representation: Bytes) throws {
+                print("I'm still here")
+                impl = try NISTCurvePublicKeyImpl(x963Representation: x963Representation)
+            }
+
+            public init(pemRepresentation: String) throws {
+                let pem = try ASN1.PEMDocument(pemString: pemRepresentation)
+                guard pem.type == "PUBLIC KEY" else {
+                    throw CryptoKitASN1Error.invalidPEMDocument
+                }
+                self = try .init(derRepresentation: pem.derBytes)
+            }
+
+            public init<Bytes: RandomAccessCollection>(derRepresentation: Bytes) throws where Bytes.Element == UInt8 {
+                let bytes = Array(derRepresentation)
+                let parsed = try ASN1.SubjectPublicKeyInfo(asn1Encoded: bytes)
+                self = try .init(x963Representation: parsed.key)
+            }
+
+            init(impl: NISTCurvePublicKeyImpl<BrainpoolP256r1.CurveDetails>) {
+                self.impl = impl
+            }
+
+            public var compactRepresentation: Data? { impl.compactRepresentation }
+            public var rawRepresentation: Data { impl.rawRepresentation }
+            public var x963Representation: Data { impl.x963Representation }
+
+            public var derRepresentation: Data {
+                let spki = ASN1.SubjectPublicKeyInfo(algorithmIdentifier: .ecdsaBrainpoolP256r1, key: Array(self.x963Representation))
+                var serializer = ASN1.Serializer()
+
+                // Serializing these keys can't throw
+                try! serializer.serialize(spki)
+                return Data(serializer.serializedBytes)
+            }
+
+            public var pemRepresentation: String {
+                let pemDocument = ASN1.PEMDocument(type: "PUBLIC KEY", derBytes: self.derRepresentation)
+                return pemDocument.pemString
+            }
+        }
+
+        public struct PrivateKey: NISTECPrivateKey {
+            let impl: NISTCurvePrivateKeyImpl<BrainpoolP256r1.CurveDetails>
+
+            public init(compactRepresentable: Bool = true) {
+                impl = NISTCurvePrivateKeyImpl(compactRepresentable: compactRepresentable)
+            }
+
+            public init<Bytes: ContiguousBytes>(x963Representation: Bytes) throws {
+                impl = try NISTCurvePrivateKeyImpl(x963: x963Representation)
+            }
+
+            public init<Bytes: ContiguousBytes>(rawRepresentation: Bytes) throws {
+                impl = try NISTCurvePrivateKeyImpl(data: rawRepresentation)
+            }
+
+            public init(pemRepresentation: String) throws {
+                let pem = try ASN1.PEMDocument(pemString: pemRepresentation)
+
+                switch pem.type {
+                case "EC PRIVATE KEY":
+                    let parsed = try ASN1.SEC1PrivateKey(asn1Encoded: Array(pem.derBytes))
+                    self = try .init(rawRepresentation: parsed.privateKey)
+                case "PRIVATE KEY":
+                    let parsed = try ASN1.PKCS8PrivateKey(asn1Encoded: Array(pem.derBytes))
+                    self = try .init(rawRepresentation: parsed.privateKey.privateKey)
+                default:
+                    throw CryptoKitASN1Error.invalidPEMDocument
+                }
+            }
+
+            public init<Bytes: RandomAccessCollection>(derRepresentation: Bytes) throws where Bytes.Element == UInt8 {
+                let bytes = Array(derRepresentation)
+
+                // We have to try to parse this twice because we have no informaton about what kind of key this is.
+                // We try with PKCS#8 first, and then fall back to SEC.1.
+
+                do {
+                    let key = try ASN1.PKCS8PrivateKey(asn1Encoded: bytes)
+                    self = try .init(rawRepresentation: key.privateKey.privateKey)
+                } catch {
+                    let key = try ASN1.SEC1PrivateKey(asn1Encoded: bytes)
+                    self = try .init(rawRepresentation: key.privateKey)
+                }
+            }
+
+            init(impl: NISTCurvePrivateKeyImpl<BrainpoolP256r1.CurveDetails>) {
+                self.impl = impl
+            }
+
+            public var publicKey: BrainpoolP256r1.Signing.PublicKey {
+                return PublicKey(impl: impl.publicKey())
+            }
+
+            public var rawRepresentation: Data { impl.rawRepresentation }
+            public var x963Representation: Data { impl.x963Representation }
+
+            public var derRepresentation: Data {
+                let pkey = ASN1.PKCS8PrivateKey(algorithm: .ecdsaBrainpoolP256r1, privateKey: Array(self.rawRepresentation), publicKey: Array(self.publicKey.x963Representation))
+                var serializer = ASN1.Serializer()
+
+                // Serializing these keys can't throw
+                try! serializer.serialize(pkey)
+                return Data(serializer.serializedBytes)
+            }
+
+            public var pemRepresentation: String {
+                let pemDocument = ASN1.PEMDocument(type: "PRIVATE KEY", derBytes: self.derRepresentation)
+                return pemDocument.pemString
+            }
+        }
+    }
+}
+
+// MARK: - BarinpoolP256r1 + DH
+extension BrainpoolP256r1.KeyAgreement.PrivateKey: DiffieHellmanKeyAgreement {
+    /// Performs a key agreement with provided public key share.
+    ///
+    /// - Parameter publicKeyShare: The public key to perform the ECDH with.
+    /// - Returns: Returns a shared secret
+    /// - Throws: An error occurred while computing the shared secret
+    public func sharedSecretFromKeyAgreement(with publicKeyShare: BrainpoolP256r1.KeyAgreement.PublicKey) throws -> SharedSecret {
+        return try self.openSSLSharedSecretFromKeyAgreement(with: publicKeyShare)
+    }
+}
 #endif // Linux or !SwiftPM

@@ -97,6 +97,28 @@ class ASN1Tests: XCTestCase {
         XCTAssertEqual(serializer.serializedBytes, decodedPrivateKey)
     }
 
+    func testASN1SEC1PrivateKeyBrainpoolP256r1() throws {
+        let encodedPrivateKey = "MHgCAQEEIFu7o01HUCvViO1oDfojCco3XrejXdu9Z8x/i2toehwdoAsGCSskAwMCCAEBB6FEA0IABHVOVIlB5c0HP+1tc0V4pIS+nwu/obb6MWjtf/sih48Pmu+bvZMqAg2IKDZ70ICj5ys2xB7kDIclP5sbC+uDcb8="
+        let decodedPrivateKey = Array(Data(base64Encoded: encodedPrivateKey)!)
+
+        let result = try orFail { try ASN1.parse(decodedPrivateKey) }
+        let pkey = try orFail { try ASN1.SEC1PrivateKey(asn1Encoded: result) }
+
+        XCTAssertEqual(pkey.algorithm, .ecdsaBrainpoolP256r1)
+        let privateKey = try orFail { try BrainpoolP256r1.Signing.PrivateKey(rawRepresentation: pkey.privateKey) }
+        let publicKey = try orFail { try BrainpoolP256r1.Signing.PublicKey(x963Representation: pkey.publicKey!) }
+        XCTAssertEqual(privateKey.publicKey.rawRepresentation, publicKey.rawRepresentation)
+
+        let kexPrivateKey = try orFail { try BrainpoolP256r1.KeyAgreement.PrivateKey(rawRepresentation: pkey.privateKey) }
+        let kexPublicKey = try orFail { try BrainpoolP256r1.KeyAgreement.PublicKey(x963Representation: pkey.publicKey!) }
+        XCTAssertEqual(kexPrivateKey.publicKey.rawRepresentation, kexPublicKey.rawRepresentation)
+
+        // For SEC1 we should be able to round-trip the serialization.
+        var serializer = ASN1.Serializer()
+        XCTAssertNoThrow(try serializer.serialize(pkey))
+        XCTAssertEqual(serializer.serializedBytes, decodedPrivateKey)
+    }
+
     func testASN1SEC1PrivateKeyP384() throws {
         let encodedPrivateKey = "MIGkAgEBBDAWv9iH6ZivZKtk5ihjvjlZCYc9JHyykqvmJ7JVQ50ZZWTkCPtIe7RSKzm+l7NJltqgBwYFK4EEACKhZANiAAQz0BBmMxeOj5XwTL1G4fqTYO2UAiYrUMixiRFlFKVY5I6jAgiEWdNbmte8o6dByo0No5YoyDHdG637xvuzGaWd+IT5LoBAVVv3AgL3ao3dA4aVhm6Yz6G6/2o3X7AH99c="
         let decodedPrivateKey = Array(Data(base64Encoded: encodedPrivateKey)!)

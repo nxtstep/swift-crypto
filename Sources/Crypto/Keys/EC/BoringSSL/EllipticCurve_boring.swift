@@ -92,6 +92,7 @@ extension BoringSSLEllipticCurveGroup {
         case p256
         case p384
         case p521
+        case brainpoolP256r1
     }
 }
 
@@ -105,6 +106,8 @@ extension BoringSSLEllipticCurveGroup.CurveName {
             return NID_secp384r1
         case .p521:
             return NID_secp521r1
+        case .brainpoolP256r1:
+            return NID_brainpoolP256r1
         }
     }
 }
